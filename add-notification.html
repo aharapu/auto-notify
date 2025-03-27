@@ -88,9 +88,9 @@
       async function addNotification() {
         const title = document.getElementById("title").value;
         const message = document.getElementById("message").value;
-        const cronExpression = getCronExpression();
+        const cron_expression = getCronExpression();
 
-        if (!title || !message || !cronExpression) {
+        if (!title || !message || !cron_expression) {
           alert("Please fill in all fields");
           return;
         }
@@ -98,8 +98,8 @@
         await ipcRenderer.invoke("add-notification", {
           title,
           message,
-          cronExpression,
-          enabled: true,
+          cron_expression,
+          is_enabled: true,
         });
 
         closeDialog();

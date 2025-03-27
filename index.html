@@ -35,7 +35,7 @@
 
         config.notifications.forEach((notification) => {
           const { minute, hour, day, month, weekday } = parseCronExpression(
-            notification.cronExpression
+            notification.cron_expression
           );
           const card = document.createElement("div");
           card.className = "notification-card";
@@ -44,7 +44,7 @@
               <h3 class="notification-title">${notification.title}</h3>
               <label class="toggle-switch">
                 <input type="checkbox" ${
-                  notification.enabled ? "checked" : ""
+                  notification.is_enabled ? "checked" : ""
                 } onchange="toggleNotification('${notification.id}')">
                 <span class="slider"></span>
               </label>
@@ -57,35 +57,35 @@
                   <input type="text" class="cron-input" data-field="minute" value="${minute}" 
                     onchange="updateNotification('${
                       notification.id
-                    }', { cronExpression: getCronExpression() })">
+                    }', { cron_expression: getCronExpression() })">
                 </div>
                 <div class="cron-input-group">
                   <label>Hour (0-23)</label>
                   <input type="text" class="cron-input" data-field="hour" value="${hour}"
                     onchange="updateNotification('${
                       notification.id
-                    }', { cronExpression: getCronExpression() })">
+                    }', { cron_expression: getCronExpression() })">
                 </div>
                 <div class="cron-input-group">
                   <label>Day (1-31)</label>
                   <input type="text" class="cron-input" data-field="day" value="${day}"
                     onchange="updateNotification('${
                       notification.id
-                    }', { cronExpression: getCronExpression() })">
+                    }', { cron_expression: getCronExpression() })">
                 </div>
                 <div class="cron-input-group">
                   <label>Month (1-12)</label>
                   <input type="text" class="cron-input" data-field="month" value="${month}"
                     onchange="updateNotification('${
                       notification.id
-                    }', { cronExpression: getCronExpression() })">
+                    }', { cron_expression: getCronExpression() })">
                 </div>
                 <div class="cron-input-group">
                   <label>Weekday (0-6)</label>
                   <input type="text" class="cron-input" data-field="weekday" value="${weekday}"
                     onchange="updateNotification('${
                       notification.id
-                    }', { cronExpression: getCronExpression() })">
+                    }', { cron_expression: getCronExpression() })">
                 </div>
               </div>
             </div>

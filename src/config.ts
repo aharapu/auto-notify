@@ -90,7 +90,7 @@ export class ConfigService {
     const notification = this.config.notifications.find((n) => n.id === id);
     if (!notification) return null;
 
-    notification.enabled = !notification.enabled;
+    notification.is_enabled = !notification.is_enabled;
     this.saveConfig();
     return notification;
   }

@@ -29,7 +29,7 @@ export class NotificationService {
     }
 
     try {
-      const interval = CronExpressionParser.parse(notification.cronExpression);
+      const interval = CronExpressionParser.parse(notification.cron_expression);
 
       // Send notification immediately
       this.sendNotification(notification);

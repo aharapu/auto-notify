@@ -3,8 +3,8 @@ import * as path from "path";
 
 export class WindowManager {
   private static instance: WindowManager;
-  private mainWindow: BrowserWindow | undefined;
-  private addDialogWindow: BrowserWindow | undefined;
+  private mainWindow: BrowserWindow | null = null;
+  private addDialogWindow: BrowserWindow | null = null;
 
   private constructor() {}
 
@@ -17,30 +17,28 @@ export class WindowManager {
 
   createMainWindow(): void {
     this.mainWindow = new BrowserWindow({
-      width: 600,
-      height: 400,
+      width: 800,
+      height: 600,
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
       },
-      icon: path.join(__dirname, "../../src/assets/icon.ico"),
     });
 
-    this.mainWindow.maximize();
     this.mainWindow.loadFile(path.join(__dirname, "../../index.html"));
+    this.mainWindow.maximize();
   }
 
   createAddDialogWindow(): void {
     this.addDialogWindow = new BrowserWindow({
-      width: 600,
+      width: 400,
       height: 500,
+      modal: true,
+      parent: this.mainWindow!,
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
       },
-      parent: this.mainWindow,
-      modal: true,
-      icon: path.join(__dirname, "../../src/assets/icon.ico"),
     });
 
     this.addDialogWindow.loadFile(
@@ -51,15 +49,39 @@ export class WindowManager {
   closeAddDialog(): void {
     if (this.addDialogWindow) {
       this.addDialogWindow.close();
-      this.addDialogWindow = undefined;
+      this.addDialogWindow = null;
     }
   }
 
-  getMainWindow(): BrowserWindow | undefined {
+  getMainWindow(): BrowserWindow | null {
     return this.mainWindow;
   }
 
-  getAddDialogWindow(): BrowserWindow | undefined {
+  getAddDialogWindow(): BrowserWindow | null {
     return this.addDialogWindow;
+  }
+
+  refreshMainWindow() {
+    if (this.mainWindow) {
+      this.mainWindow.webContents.send("notification-added");
+    }
+  }
+
+  notifyNotificationUpdated(id: string) {
+    if (this.mainWindow) {
+      this.mainWindow.webContents.send("notification-updated", id);
+    }
+  }
+
+  notifyNotificationDeleted(id: string) {
+    if (this.mainWindow) {
+      this.mainWindow.webContents.send("notification-deleted", id);
+    }
+  }
+
+  notifyNotificationToggled(id: string) {
+    if (this.mainWindow) {
+      this.mainWindow.webContents.send("notification-toggled", id);
+    }
   }
 }

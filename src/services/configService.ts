@@ -1,97 +1,74 @@
 import { app } from "electron";
-import * as fs from "fs";
-import * as path from "path";
+import { DatabaseService } from "./databaseService";
 import { AppConfig, NotificationConfig } from "../types";
 
 const CONFIG_FILE = "config.json";
 
 export class ConfigService {
   private static instance: ConfigService;
-  private readonly config: AppConfig;
+  private notifications: NotificationConfig[] = [];
+  private readonly db: DatabaseService;
+  private initialized: boolean = false;
 
-  private constructor() {
-    this.config = this.loadConfig();
+  private constructor(dbConfig: any) {
+    this.db = new DatabaseService(dbConfig);
   }
 
-  static getInstance(): ConfigService {
+  static async getInstance(dbConfig?: any): Promise<ConfigService> {
     if (!ConfigService.instance) {
-      ConfigService.instance = new ConfigService();
+      if (!dbConfig) {
+        throw new Error(
+          "Database configuration is required for first initialization"
+        );
+      }
+      ConfigService.instance = new ConfigService(dbConfig);
+      await ConfigService.instance.loadNotifications();
     }
     return ConfigService.instance;
   }
 
-  getConfig(): AppConfig {
-    return this.config;
+  private async loadNotifications() {
+    this.notifications = await this.db.getNotifications();
+    this.initialized = true;
   }
 
-  private getConfigPath(): string {
-    return path.join(app.getPath("userData"), CONFIG_FILE);
-  }
-
-  private loadConfig(): AppConfig {
-    try {
-      const configPath = this.getConfigPath();
-      if (fs.existsSync(configPath)) {
-        const data = fs.readFileSync(configPath, "utf8");
-        return JSON.parse(data);
-      }
-    } catch (error) {
-      console.error("Error loading config:", error);
+  async getConfig(): Promise<AppConfig> {
+    if (!this.initialized) {
+      await this.loadNotifications();
     }
-    return { notifications: [] };
+    return { notifications: this.notifications };
   }
 
-  private saveConfig(): void {
-    try {
-      const configPath = this.getConfigPath();
-      fs.writeFileSync(configPath, JSON.stringify(this.config, null, 2));
-    } catch (error) {
-      console.error("Error saving config:", error);
+  async addNotification(notification: NotificationConfig) {
+    await this.db.addNotification(notification);
+    this.notifications.push(notification);
+  }
+
+  async updateNotification(id: string, updates: Partial<NotificationConfig>) {
+    await this.db.updateNotification(id, updates);
+    const index = this.notifications.findIndex((n) => n.id === id);
+    if (index !== -1) {
+      this.notifications[index] = {
+        ...this.notifications[index],
+        ...updates,
+      };
     }
   }
 
-  addNotification(
-    notification: Omit<NotificationConfig, "id">
-  ): NotificationConfig {
-    const newNotification: NotificationConfig = {
-      ...notification,
-      id: Date.now().toString(),
-    };
-    this.config.notifications.push(newNotification);
-    this.saveConfig();
-    return newNotification;
+  async deleteNotification(id: string) {
+    await this.db.deleteNotification(id);
+    this.notifications = this.notifications.filter((n) => n.id !== id);
   }
 
-  updateNotification(
-    id: string,
-    notification: Partial<NotificationConfig>
-  ): NotificationConfig | null {
-    const index = this.config.notifications.findIndex((n) => n.id === id);
-    if (index === -1) return null;
-
-    this.config.notifications[index] = {
-      ...this.config.notifications[index],
-      ...notification,
-    };
-    this.saveConfig();
-    return this.config.notifications[index];
+  async toggleNotification(id: string) {
+    await this.db.toggleNotification(id);
+    const notification = this.notifications.find((n) => n.id === id);
+    if (notification) {
+      notification.is_enabled = !notification.is_enabled;
+    }
   }
 
-  deleteNotification(id: string): boolean {
-    const index = this.config.notifications.findIndex((n) => n.id === id);
-    if (index === -1) return false;
-
-    this.config.notifications.splice(index, 1);
-    this.saveConfig();
-    return true;
-  }
-
-  toggleNotification(id: string): NotificationConfig | null {
-    const notification = this.config.notifications.find((n) => n.id === id);
-    if (!notification) return null;
-
-    notification.enabled = !notification.enabled;
-    this.saveConfig();
-    return notification;
+  async close() {
+    await this.db.close();
   }
 }
