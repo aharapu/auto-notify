@@ -23,11 +23,11 @@ export class DatabaseService {
     return result;
   }
 
-  async addNotification(notification: NotificationConfig): Promise<void> {
-    console.log("adding notification", notification);
-    await this.query(
+  async addNotification(notification: NotificationConfig): Promise<number> {
+    const result = await this.query(
       `INSERT INTO notifications (title, message, cron_expression, is_enabled)
-       VALUES ($1, $2, $3, $4)`,
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
       [
         notification.title,
         notification.message,
@@ -35,14 +35,13 @@ export class DatabaseService {
         notification.is_enabled,
       ]
     );
+    return result[0].id;
   }
 
   async updateNotification(
     id: string,
     updates: Partial<NotificationConfig>
   ): Promise<void> {
-    console.log("updating notification", id, updates);
-
     const setClause = Object.entries(updates)
       .map(([key, _], index) => `${key} = $${index + 2}`)
       .join(", ");

@@ -40,8 +40,8 @@ export class ConfigService {
   }
 
   async addNotification(notification: NotificationConfig) {
-    await this.db.addNotification(notification);
-    this.notifications.push(notification);
+    const id = await this.db.addNotification(notification);
+    this.notifications.push({ ...notification, id });
   }
 
   async updateNotification(id: string, updates: Partial<NotificationConfig>) {
