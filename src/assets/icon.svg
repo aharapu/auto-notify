@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect x="16" y="16" width="224" height="224" rx="20" fill="#2C3E50"/>
+  
+  <!-- Digital Display -->
+  <rect x="40" y="60" width="176" height="80" rx="10" fill="#34495E"/>
+  
+  <!-- Time Display -->
+  <text x="128" y="120" font-family="monospace" font-size="48" fill="#2ECC71" text-anchor="middle">12:00</text>
+  
+  <!-- LED Dots -->
+  <circle cx="80" cy="100" r="4" fill="#2ECC71"/>
+  <circle cx="176" cy="100" r="4" fill="#2ECC71"/>
+  
+  <!-- Frame Details -->
+  <rect x="16" y="16" width="224" height="224" rx="20" fill="none" stroke="#34495E" stroke-width="8"/>
+</svg> 

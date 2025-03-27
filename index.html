@@ -1,50 +1,319 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Stretch Reminder</title>
+    <title>Notification Manager</title>
     <style>
       body {
         font-family: Arial, sans-serif;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
         margin: 0;
+        padding: 20px;
         background-color: #f0f0f0;
       }
-      button {
-        padding: 15px 30px;
-        font-size: 16px;
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .notification-list {
+        display: grid;
+        gap: 20px;
+      }
+      .notification-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .notification-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .notification-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin: 0;
+      }
+      .notification-message {
+        color: #666;
+        margin: 10px 0;
+      }
+      .notification-frequency {
+        display: flex;
+        gap: 10px;
+        margin: 10px 0;
+      }
+      .frequency-input {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .frequency-input input {
+        width: 60px;
+        padding: 5px;
+      }
+      .button {
+        padding: 8px 16px;
         border: none;
-        border-radius: 5px;
+        border-radius: 4px;
         cursor: pointer;
+        font-size: 14px;
         transition: background-color 0.3s;
       }
-      .enabled {
+      .button-primary {
         background-color: #4caf50;
         color: white;
       }
-      .disabled {
+      .button-danger {
         background-color: #f44336;
         color: white;
+      }
+      .button-secondary {
+        background-color: #2196f3;
+        color: white;
+      }
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+      }
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+        border-radius: 24px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: #4caf50;
+      }
+      input:checked + .slider:before {
+        transform: translateX(26px);
+      }
+      .add-notification-form {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
       }
     </style>
   </head>
   <body>
-    <button id="toggleButton" class="disabled">Notifications Off</button>
+    <div class="container">
+      <div class="header">
+        <h1>Notification Manager</h1>
+        <button class="button button-primary" onclick="showAddForm()">
+          Add Notification
+        </button>
+      </div>
+
+      <div
+        id="addNotificationForm"
+        class="add-notification-form"
+        style="display: none"
+      >
+        <h2>Add New Notification</h2>
+        <div class="form-group">
+          <label for="title">Title:</label>
+          <input type="text" id="title" required />
+        </div>
+        <div class="form-group">
+          <label for="message">Message:</label>
+          <input type="text" id="message" required />
+        </div>
+        <div class="form-group">
+          <label>Frequency:</label>
+          <div class="notification-frequency">
+            <div class="frequency-input">
+              <input type="number" id="hours" min="0" value="0" />
+              <span>hours</span>
+            </div>
+            <div class="frequency-input">
+              <input type="number" id="minutes" min="0" value="5" />
+              <span>minutes</span>
+            </div>
+            <div class="frequency-input">
+              <input type="number" id="seconds" min="0" value="0" />
+              <span>seconds</span>
+            </div>
+          </div>
+        </div>
+        <button class="button button-primary" onclick="addNotification()">
+          Add
+        </button>
+        <button class="button button-secondary" onclick="hideAddForm()">
+          Cancel
+        </button>
+      </div>
+
+      <div id="notificationList" class="notification-list">
+        <!-- Notifications will be added here dynamically -->
+      </div>
+    </div>
+
     <script>
       const { ipcRenderer } = require("electron");
-      const button = document.getElementById("toggleButton");
-      let notificationsEnabled = false;
 
-      button.addEventListener("click", () => {
-        notificationsEnabled = !notificationsEnabled;
-        button.textContent = notificationsEnabled
-          ? "Notifications On"
-          : "Notifications Off";
-        button.className = notificationsEnabled ? "enabled" : "disabled";
-        ipcRenderer.send("toggle-notifications", notificationsEnabled);
-      });
+      // Load notifications on startup
+      loadNotifications();
+
+      async function loadNotifications() {
+        const config = await ipcRenderer.invoke("get-config");
+        const notificationList = document.getElementById("notificationList");
+        notificationList.innerHTML = "";
+
+        config.notifications.forEach((notification) => {
+          addNotificationToUI(notification);
+        });
+      }
+
+      function addNotificationToUI(notification) {
+        const notificationList = document.getElementById("notificationList");
+        const card = document.createElement("div");
+        card.className = "notification-card";
+        card.innerHTML = `
+          <div class="notification-header">
+            <h3 class="notification-title">${notification.title}</h3>
+            <label class="toggle-switch">
+              <input type="checkbox" ${notification.enabled ? "checked" : ""} 
+                     onchange="toggleNotification('${notification.id}')">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="notification-message">${notification.message}</p>
+          <div class="notification-frequency">
+            <div class="frequency-input">
+              <input type="number" value="${notification.frequency.hours}" 
+                     onchange="updateFrequency('${
+                       notification.id
+                     }', 'hours', this.value)">
+              <span>hours</span>
+            </div>
+            <div class="frequency-input">
+              <input type="number" value="${notification.frequency.minutes}" 
+                     onchange="updateFrequency('${
+                       notification.id
+                     }', 'minutes', this.value)">
+              <span>minutes</span>
+            </div>
+            <div class="frequency-input">
+              <input type="number" value="${notification.frequency.seconds}" 
+                     onchange="updateFrequency('${
+                       notification.id
+                     }', 'seconds', this.value)">
+              <span>seconds</span>
+            </div>
+          </div>
+          <button class="button button-danger" onclick="deleteNotification('${
+            notification.id
+          }')">
+            Delete
+          </button>
+        `;
+        notificationList.appendChild(card);
+      }
+
+      function showAddForm() {
+        document.getElementById("addNotificationForm").style.display = "block";
+      }
+
+      function hideAddForm() {
+        document.getElementById("addNotificationForm").style.display = "none";
+      }
+
+      async function addNotification() {
+        const title = document.getElementById("title").value;
+        const message = document.getElementById("message").value;
+        const hours = parseInt(document.getElementById("hours").value) || 0;
+        const minutes = parseInt(document.getElementById("minutes").value) || 0;
+        const seconds = parseInt(document.getElementById("seconds").value) || 0;
+
+        if (!title || !message) {
+          alert("Please fill in all required fields");
+          return;
+        }
+
+        const notification = {
+          title,
+          message,
+          frequency: { hours, minutes, seconds },
+          enabled: true,
+        };
+
+        const newNotification = await ipcRenderer.invoke(
+          "add-notification",
+          notification
+        );
+        addNotificationToUI(newNotification);
+        hideAddForm();
+      }
+
+      async function toggleNotification(id) {
+        await ipcRenderer.invoke("toggle-notification", id);
+      }
+
+      async function updateFrequency(id, unit, value) {
+        const notification = await ipcRenderer.invoke("get-config");
+        const targetNotification = notification.notifications.find(
+          (n) => n.id === id
+        );
+        if (targetNotification) {
+          targetNotification.frequency[unit] = parseInt(value) || 0;
+          await ipcRenderer.invoke(
+            "update-notification",
+            id,
+            targetNotification
+          );
+        }
+      }
+
+      async function deleteNotification(id) {
+        const success = await ipcRenderer.invoke("delete-notification", id);
+        if (success) {
+          loadNotifications();
+        }
+      }
     </script>
   </body>
 </html>

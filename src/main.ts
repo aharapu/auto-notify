@@ -1,17 +1,21 @@
 import { app, BrowserWindow, ipcMain, Notification } from "electron";
 import * as path from "path";
+import { ConfigService } from "./config";
+import { NotificationConfig } from "./types";
 
 let mainWindow: BrowserWindow | null = null;
-let notificationInterval: NodeJS.Timeout | null = null;
+const notificationIntervals: Map<string, NodeJS.Timeout> = new Map();
+const configService = ConfigService.getInstance();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 300,
-    height: 200,
+    width: 600,
+    height: 400,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
     },
+    icon: path.join(__dirname, "../src/assets/icon.ico"),
   });
 
   mainWindow.loadFile(path.join(__dirname, "../index.html"));
@@ -31,27 +35,94 @@ app.on("activate", () => {
   }
 });
 
-function sendNotification(): void {
+function sendNotification(notification: NotificationConfig): void {
   new Notification({
-    title: "Time to Stretch!",
-    body: "Take a moment to stretch and move around.",
+    title: notification.title,
+    body: notification.message,
   }).show();
 }
 
-ipcMain.on(
-  "toggle-notifications",
-  (_event: Electron.IpcMainEvent, enabled: boolean) => {
-    if (enabled) {
-      // Send notification immediately
-      sendNotification();
-      // Set up interval for every 5 minutes
-      notificationInterval = setInterval(sendNotification, 0.1 * 60 * 1000);
-    } else {
-      // Clear the interval when notifications are disabled
-      if (notificationInterval) {
-        clearInterval(notificationInterval);
-        notificationInterval = null;
-      }
+function startNotification(notification: NotificationConfig): void {
+  if (notificationIntervals.has(notification.id)) {
+    clearInterval(notificationIntervals.get(notification.id));
+  }
+
+  const totalMilliseconds =
+    notification.frequency.hours * 3600000 +
+    notification.frequency.minutes * 60000 +
+    notification.frequency.seconds * 1000;
+
+  // Send notification immediately
+  sendNotification(notification);
+
+  // Set up interval
+  const interval = setInterval(() => {
+    sendNotification(notification);
+  }, totalMilliseconds);
+
+  notificationIntervals.set(notification.id, interval);
+}
+
+function stopNotification(id: string): void {
+  const interval = notificationIntervals.get(id);
+  if (interval) {
+    clearInterval(interval);
+    notificationIntervals.delete(id);
+  }
+}
+
+// IPC handlers
+ipcMain.handle("get-config", () => {
+  return configService.getConfig();
+});
+
+ipcMain.handle(
+  "add-notification",
+  (_event, notification: Omit<NotificationConfig, "id">) => {
+    const newNotification = configService.addNotification(notification);
+    if (newNotification.enabled) {
+      startNotification(newNotification);
     }
+    return newNotification;
   }
 );
+
+ipcMain.handle(
+  "update-notification",
+  (_event, id: string, notification: Partial<NotificationConfig>) => {
+    const updated = configService.updateNotification(id, notification);
+    if (updated) {
+      if (updated.enabled) {
+        startNotification(updated);
+      } else {
+        stopNotification(id);
+      }
+    }
+    return updated;
+  }
+);
+
+ipcMain.handle("delete-notification", (_event, id: string) => {
+  stopNotification(id);
+  return configService.deleteNotification(id);
+});
+
+ipcMain.handle("toggle-notification", (_event, id: string) => {
+  const notification = configService.toggleNotification(id);
+  if (notification) {
+    if (notification.enabled) {
+      startNotification(notification);
+    } else {
+      stopNotification(id);
+    }
+  }
+  return notification;
+});
+
+// Initialize notifications from saved config
+const config = configService.getConfig();
+config.notifications.forEach((notification) => {
+  if (notification.enabled) {
+    startNotification(notification);
+  }
+});
