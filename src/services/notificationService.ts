@@ -24,8 +24,8 @@ export class NotificationService {
   }
 
   startNotification(notification: NotificationConfig): void {
-    if (this.notificationIntervals.has(notification.id)) {
-      clearInterval(this.notificationIntervals.get(notification.id));
+    if (this.notificationIntervals.has(notification.id.toString())) {
+      clearInterval(this.notificationIntervals.get(notification.id.toString()));
     }
 
     try {
@@ -45,7 +45,7 @@ export class NotificationService {
           scheduleNext();
         }, delay);
 
-        this.notificationIntervals.set(notification.id, timeout);
+        this.notificationIntervals.set(notification.id.toString(), timeout);
       };
 
       scheduleNext();

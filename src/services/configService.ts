@@ -46,7 +46,7 @@ export class ConfigService {
 
   async updateNotification(id: string, updates: Partial<NotificationConfig>) {
     await this.db.updateNotification(id, updates);
-    const index = this.notifications.findIndex((n) => n.id === id);
+    const index = this.notifications.findIndex((n) => n.id === parseInt(id));
     if (index !== -1) {
       this.notifications[index] = {
         ...this.notifications[index],
@@ -57,12 +57,14 @@ export class ConfigService {
 
   async deleteNotification(id: string) {
     await this.db.deleteNotification(id);
-    this.notifications = this.notifications.filter((n) => n.id !== id);
+    this.notifications = this.notifications.filter(
+      (n) => n.id !== parseInt(id)
+    );
   }
 
   async toggleNotification(id: string) {
     await this.db.toggleNotification(id);
-    const notification = this.notifications.find((n) => n.id === id);
+    const notification = this.notifications.find((n) => n.id === parseInt(id));
     if (notification) {
       notification.is_enabled = !notification.is_enabled;
     }

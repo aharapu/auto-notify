@@ -55,7 +55,7 @@ export class ConfigService {
   ): NotificationConfig {
     const newNotification: NotificationConfig = {
       ...notification,
-      id: Date.now().toString(),
+      id: Date.now(),
     };
     this.config.notifications.push(newNotification);
     this.saveConfig();
@@ -66,7 +66,9 @@ export class ConfigService {
     id: string,
     notification: Partial<NotificationConfig>
   ): NotificationConfig | null {
-    const index = this.config.notifications.findIndex((n) => n.id === id);
+    const index = this.config.notifications.findIndex(
+      (n) => n.id === parseInt(id)
+    );
     if (index === -1) return null;
 
     this.config.notifications[index] = {
@@ -78,7 +80,9 @@ export class ConfigService {
   }
 
   deleteNotification(id: string): boolean {
-    const index = this.config.notifications.findIndex((n) => n.id === id);
+    const index = this.config.notifications.findIndex(
+      (n) => n.id === parseInt(id)
+    );
     if (index === -1) return false;
 
     this.config.notifications.splice(index, 1);
@@ -87,7 +91,9 @@ export class ConfigService {
   }
 
   toggleNotification(id: string): NotificationConfig | null {
-    const notification = this.config.notifications.find((n) => n.id === id);
+    const notification = this.config.notifications.find(
+      (n) => n.id === parseInt(id)
+    );
     if (!notification) return null;
 
     notification.is_enabled = !notification.is_enabled;

@@ -1,5 +1,5 @@
 export interface NotificationConfig {
-  id: string;
+  id: number;
   title: string;
   message: string;
   cron_expression: string;
