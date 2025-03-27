@@ -1,97 +1,12 @@
-import { app, BrowserWindow, ipcMain, Notification } from "electron";
-import * as path from "path";
-import { ConfigService } from "./config";
+import { app, BrowserWindow, ipcMain } from "electron";
+import { NotificationService } from "./services/notificationService";
+import { WindowManager } from "./services/windowManager";
 import { NotificationConfig } from "./types";
-import { CronExpressionParser } from "cron-parser";
+import { ConfigService } from "./services/configService";
 
-let mainWindow: BrowserWindow | undefined;
-let addDialogWindow: BrowserWindow | undefined;
-const notificationIntervals: Map<string, NodeJS.Timeout> = new Map();
 const configService = ConfigService.getInstance();
-
-function createWindow(): void {
-  mainWindow = new BrowserWindow({
-    width: 600,
-    height: 400,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-    icon: path.join(__dirname, "../src/assets/icon.ico"),
-  });
-
-  mainWindow.maximize();
-  mainWindow.loadFile(path.join(__dirname, "../index.html"));
-}
-
-function createAddDialogWindow(): void {
-  addDialogWindow = new BrowserWindow({
-    width: 600,
-    height: 500,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-    parent: mainWindow,
-    modal: true,
-    icon: path.join(__dirname, "../src/assets/icon.ico"),
-  });
-
-  addDialogWindow.loadFile(path.join(__dirname, "../add-notification.html"));
-}
-
-function sendNotification(notification: NotificationConfig): void {
-  if (!app.isReady()) return;
-
-  new Notification({
-    title: notification.title,
-    body: notification.message,
-  }).show();
-}
-
-function startNotification(notification: NotificationConfig): void {
-  if (notificationIntervals.has(notification.id)) {
-    clearInterval(notificationIntervals.get(notification.id));
-  }
-
-  try {
-    const interval = CronExpressionParser.parse(notification.cronExpression);
-
-    // Send notification immediately if app is ready
-    if (app.isReady()) {
-      sendNotification(notification);
-    }
-
-    // Set up interval based on cron expression
-    const scheduleNext = () => {
-      const next = interval.next();
-      const now = new Date();
-      const delay = next.getTime() - now.getTime();
-
-      const timeout = setTimeout(() => {
-        sendNotification(notification);
-        scheduleNext();
-      }, delay);
-
-      notificationIntervals.set(notification.id, timeout);
-    };
-
-    scheduleNext();
-  } catch (error) {
-    console.error(
-      `Invalid cron expression for notification ${notification.id}:`,
-      error
-    );
-  }
-}
-
-function stopNotification(id: string): void {
-  const interval = notificationIntervals.get(id);
-  if (interval) {
-    clearInterval(interval);
-    notificationIntervals.delete(id);
-  }
-}
+const notificationService = NotificationService.getInstance();
+const windowManager = WindowManager.getInstance();
 
 // IPC handlers
 ipcMain.handle("get-config", () => {
@@ -99,14 +14,11 @@ ipcMain.handle("get-config", () => {
 });
 
 ipcMain.handle("show-add-dialog", () => {
-  createAddDialogWindow();
+  windowManager.createAddDialogWindow();
 });
 
 ipcMain.on("close-add-dialog", () => {
-  if (addDialogWindow) {
-    addDialogWindow.close();
-    addDialogWindow = undefined;
-  }
+  windowManager.closeAddDialog();
 });
 
 ipcMain.handle(
@@ -114,10 +26,10 @@ ipcMain.handle(
   (_event, notification: Omit<NotificationConfig, "id">) => {
     const newNotification = configService.addNotification(notification);
     if (newNotification.enabled) {
-      startNotification(newNotification);
+      notificationService.startNotification(newNotification);
     }
     // Notify main window to refresh
-    mainWindow?.webContents.send("notification-added");
+    windowManager.getMainWindow()?.webContents.send("notification-added");
     return newNotification;
   }
 );
@@ -128,9 +40,9 @@ ipcMain.handle(
     const updated = configService.updateNotification(id, notification);
     if (updated) {
       if (updated.enabled) {
-        startNotification(updated);
+        notificationService.startNotification(updated);
       } else {
-        stopNotification(id);
+        notificationService.stopNotification(id);
       }
     }
     return updated;
@@ -138,7 +50,7 @@ ipcMain.handle(
 );
 
 ipcMain.handle("delete-notification", (_event, id: string) => {
-  stopNotification(id);
+  notificationService.stopNotification(id);
   return configService.deleteNotification(id);
 });
 
@@ -146,9 +58,9 @@ ipcMain.handle("toggle-notification", (_event, id: string) => {
   const notification = configService.toggleNotification(id);
   if (notification) {
     if (notification.enabled) {
-      startNotification(notification);
+      notificationService.startNotification(notification);
     } else {
-      stopNotification(id);
+      notificationService.stopNotification(id);
     }
   }
   return notification;
@@ -156,13 +68,13 @@ ipcMain.handle("toggle-notification", (_event, id: string) => {
 
 // Initialize app
 app.whenReady().then(() => {
-  createWindow();
+  windowManager.createMainWindow();
 
   // Initialize notifications from saved config after app is ready
   const config = configService.getConfig();
   config.notifications.forEach((notification) => {
     if (notification.enabled) {
-      startNotification(notification);
+      notificationService.startNotification(notification);
     }
   });
 });
@@ -175,6 +87,6 @@ app.on("window-all-closed", () => {
 
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    windowManager.createMainWindow();
   }
 });
