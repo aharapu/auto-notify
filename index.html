@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Stretch Reminder</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+      }
+      button {
+        padding: 15px 30px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      .enabled {
+        background-color: #4caf50;
+        color: white;
+      }
+      .disabled {
+        background-color: #f44336;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="toggleButton" class="disabled">Notifications Off</button>
+    <script>
+      const { ipcRenderer } = require("electron");
+      const button = document.getElementById("toggleButton");
+      let notificationsEnabled = false;
+
+      button.addEventListener("click", () => {
+        notificationsEnabled = !notificationsEnabled;
+        button.textContent = notificationsEnabled
+          ? "Notifications On"
+          : "Notifications Off";
+        button.className = notificationsEnabled ? "enabled" : "disabled";
+        ipcRenderer.send("toggle-notifications", notificationsEnabled);
+      });
+    </script>
+  </body>
+</html>
