@@ -183,74 +183,8 @@
     <div class="container">
       <div class="header">
         <h1>Notification Manager</h1>
-        <button class="button button-primary" onclick="showAddForm()">
+        <button class="button button-primary" onclick="showAddDialog()">
           Add Notification
-        </button>
-      </div>
-
-      <div
-        id="addNotificationForm"
-        class="add-notification-form"
-        style="display: none"
-      >
-        <h2>Add New Notification</h2>
-        <div class="form-group">
-          <label for="title">Title:</label>
-          <input type="text" id="title" required />
-        </div>
-        <div class="form-group">
-          <label for="message">Message:</label>
-          <textarea id="message" required></textarea>
-        </div>
-        <div class="form-group">
-          <label>Schedule:</label>
-          <div class="cron-inputs">
-            <div class="cron-input-group">
-              <label>Minute (0-59)</label>
-              <input
-                type="text"
-                id="cronMinute"
-                value="*/5"
-                placeholder="*/5"
-              />
-            </div>
-            <div class="cron-input-group">
-              <label>Hour (0-23)</label>
-              <input type="text" id="cronHour" value="*" placeholder="*" />
-            </div>
-            <div class="cron-input-group">
-              <label>Day (1-31)</label>
-              <input type="text" id="cronDay" value="*" placeholder="*" />
-            </div>
-            <div class="cron-input-group">
-              <label>Month (1-12)</label>
-              <input type="text" id="cronMonth" value="*" placeholder="*" />
-            </div>
-            <div class="cron-input-group">
-              <label>Weekday (0-6)</label>
-              <input type="text" id="cronWeekday" value="*" placeholder="*" />
-            </div>
-          </div>
-          <div class="cron-presets">
-            <div class="cron-preset" onclick="applyPreset('*/5 * * * *')">
-              Every 5 minutes
-            </div>
-            <div class="cron-preset" onclick="applyPreset('0 * * * *')">
-              Every hour
-            </div>
-            <div class="cron-preset" onclick="applyPreset('0 9 * * 1-5')">
-              Every weekday at 9 AM
-            </div>
-            <div class="cron-preset" onclick="applyPreset('0 0 * * *')">
-              Every day at midnight
-            </div>
-          </div>
-        </div>
-        <button class="button button-primary" onclick="addNotification()">
-          Add
-        </button>
-        <button class="button button-secondary" onclick="hideAddForm()">
-          Cancel
         </button>
       </div>
 
@@ -260,28 +194,14 @@
     <script>
       const { ipcRenderer } = require("electron");
 
-      function getCronExpression() {
-        const minute = document.getElementById("cronMinute").value;
-        const hour = document.getElementById("cronHour").value;
-        const day = document.getElementById("cronDay").value;
-        const month = document.getElementById("cronMonth").value;
-        const weekday = document.getElementById("cronWeekday").value;
-        return `${minute} ${hour} ${day} ${month} ${weekday}`;
+      function showAddDialog() {
+        ipcRenderer.invoke("show-add-dialog");
       }
 
-      function applyPreset(expression) {
-        const [minute, hour, day, month, weekday] = expression.split(" ");
-        document.getElementById("cronMinute").value = minute;
-        document.getElementById("cronHour").value = hour;
-        document.getElementById("cronDay").value = day;
-        document.getElementById("cronMonth").value = month;
-        document.getElementById("cronWeekday").value = weekday;
-      }
-
-      function parseCronExpression(expression) {
-        const [minute, hour, day, month, weekday] = expression.split(" ");
-        return { minute, hour, day, month, weekday };
-      }
+      // Listen for notification-added event
+      ipcRenderer.on("notification-added", () => {
+        loadNotifications();
+      });
 
       async function loadNotifications() {
         const config = await ipcRenderer.invoke("get-config");
@@ -343,12 +263,6 @@
                     }', { cronExpression: getCronExpression() })">
                 </div>
               </div>
-              <div class="cron-presets">
-                <div class="cron-preset" onclick="applyPreset('*/5 * * * *')">Every 5 minutes</div>
-                <div class="cron-preset" onclick="applyPreset('0 * * * *')">Every hour</div>
-                <div class="cron-preset" onclick="applyPreset('0 9 * * 1-5')">Every weekday at 9 AM</div>
-                <div class="cron-preset" onclick="applyPreset('0 0 * * *')">Every day at midnight</div>
-              </div>
             </div>
             <button class="button button-danger" onclick="deleteNotification('${
               notification.id
@@ -358,40 +272,18 @@
         });
       }
 
-      function showAddForm() {
-        document.getElementById("addNotificationForm").style.display = "block";
+      function getCronExpression() {
+        const minute = document.getElementById("cronMinute").value;
+        const hour = document.getElementById("cronHour").value;
+        const day = document.getElementById("cronDay").value;
+        const month = document.getElementById("cronMonth").value;
+        const weekday = document.getElementById("cronWeekday").value;
+        return `${minute} ${hour} ${day} ${month} ${weekday}`;
       }
 
-      function hideAddForm() {
-        document.getElementById("addNotificationForm").style.display = "none";
-      }
-
-      async function addNotification() {
-        const title = document.getElementById("title").value;
-        const message = document.getElementById("message").value;
-        const cronExpression = getCronExpression();
-
-        if (!title || !message || !cronExpression) {
-          alert("Please fill in all fields");
-          return;
-        }
-
-        await ipcRenderer.invoke("add-notification", {
-          title,
-          message,
-          cronExpression,
-          enabled: true,
-        });
-
-        document.getElementById("title").value = "";
-        document.getElementById("message").value = "";
-        document.getElementById("cronMinute").value = "*/5";
-        document.getElementById("cronHour").value = "*";
-        document.getElementById("cronDay").value = "*";
-        document.getElementById("cronMonth").value = "*";
-        document.getElementById("cronWeekday").value = "*";
-        hideAddForm();
-        loadNotifications();
+      function parseCronExpression(expression) {
+        const [minute, hour, day, month, weekday] = expression.split(" ");
+        return { minute, hour, day, month, weekday };
       }
 
       async function updateNotification(id, updates) {

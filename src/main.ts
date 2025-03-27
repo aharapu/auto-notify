@@ -4,7 +4,8 @@ import { ConfigService } from "./config";
 import { NotificationConfig } from "./types";
 import { CronExpressionParser } from "cron-parser";
 
-let mainWindow: BrowserWindow | null = null;
+let mainWindow: BrowserWindow | undefined;
+let addDialogWindow: BrowserWindow | undefined;
 const notificationIntervals: Map<string, NodeJS.Timeout> = new Map();
 const configService = ConfigService.getInstance();
 
@@ -19,7 +20,24 @@ function createWindow(): void {
     icon: path.join(__dirname, "../src/assets/icon.ico"),
   });
 
+  mainWindow.maximize();
   mainWindow.loadFile(path.join(__dirname, "../index.html"));
+}
+
+function createAddDialogWindow(): void {
+  addDialogWindow = new BrowserWindow({
+    width: 600,
+    height: 500,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+    parent: mainWindow,
+    modal: true,
+    icon: path.join(__dirname, "../src/assets/icon.ico"),
+  });
+
+  addDialogWindow.loadFile(path.join(__dirname, "../add-notification.html"));
 }
 
 function sendNotification(notification: NotificationConfig): void {
@@ -80,6 +98,17 @@ ipcMain.handle("get-config", () => {
   return configService.getConfig();
 });
 
+ipcMain.handle("show-add-dialog", () => {
+  createAddDialogWindow();
+});
+
+ipcMain.on("close-add-dialog", () => {
+  if (addDialogWindow) {
+    addDialogWindow.close();
+    addDialogWindow = undefined;
+  }
+});
+
 ipcMain.handle(
   "add-notification",
   (_event, notification: Omit<NotificationConfig, "id">) => {
@@ -87,6 +116,8 @@ ipcMain.handle(
     if (newNotification.enabled) {
       startNotification(newNotification);
     }
+    // Notify main window to refresh
+    mainWindow?.webContents.send("notification-added");
     return newNotification;
   }
 );

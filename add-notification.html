@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Add Notification</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f0f0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        height: 100px;
+      }
+      .cron-inputs {
+        display: flex;
+        gap: 10px;
+        margin: 10px 0;
+      }
+      .cron-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .cron-input-group label {
+        font-size: 12px;
+        color: #666;
+      }
+      .cron-input-group input {
+        width: 60px;
+        padding: 5px;
+      }
+      .cron-presets {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+      .cron-preset {
+        font-size: 12px;
+        padding: 4px 8px;
+        background: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .cron-preset:hover {
+        background: #e0e0e0;
+      }
+      .button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.3s;
+      }
+      .button-primary {
+        background-color: #4caf50;
+        color: white;
+      }
+      .button-secondary {
+        background-color: #2196f3;
+        color: white;
+      }
+      .button-container {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Add New Notification</h2>
+      <div class="form-group">
+        <label for="title">Title:</label>
+        <input type="text" id="title" required />
+      </div>
+      <div class="form-group">
+        <label for="message">Message:</label>
+        <textarea id="message" required></textarea>
+      </div>
+      <div class="form-group">
+        <label>Schedule:</label>
+        <div class="cron-inputs">
+          <div class="cron-input-group">
+            <label>Minute (0-59)</label>
+            <input type="text" id="cronMinute" value="*/5" placeholder="*/5" />
+          </div>
+          <div class="cron-input-group">
+            <label>Hour (0-23)</label>
+            <input type="text" id="cronHour" value="*" placeholder="*" />
+          </div>
+          <div class="cron-input-group">
+            <label>Day (1-31)</label>
+            <input type="text" id="cronDay" value="*" placeholder="*" />
+          </div>
+          <div class="cron-input-group">
+            <label>Month (1-12)</label>
+            <input type="text" id="cronMonth" value="*" placeholder="*" />
+          </div>
+          <div class="cron-input-group">
+            <label>Weekday (0-6)</label>
+            <input type="text" id="cronWeekday" value="*" placeholder="*" />
+          </div>
+        </div>
+        <div class="cron-presets">
+          <div class="cron-preset" onclick="applyPreset('*/5 * * * *')">
+            Every 5 minutes
+          </div>
+          <div class="cron-preset" onclick="applyPreset('0 * * * *')">
+            Every hour
+          </div>
+          <div class="cron-preset" onclick="applyPreset('0 9 * * 1-5')">
+            Every weekday at 9 AM
+          </div>
+          <div class="cron-preset" onclick="applyPreset('0 0 * * *')">
+            Every day at midnight
+          </div>
+        </div>
+      </div>
+      <div class="button-container">
+        <button class="button button-secondary" onclick="closeDialog()">
+          Cancel
+        </button>
+        <button class="button button-primary" onclick="addNotification()">
+          Add
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const { ipcRenderer } = require("electron");
+
+      function getCronExpression() {
+        const minute = document.getElementById("cronMinute").value;
+        const hour = document.getElementById("cronHour").value;
+        const day = document.getElementById("cronDay").value;
+        const month = document.getElementById("cronMonth").value;
+        const weekday = document.getElementById("cronWeekday").value;
+        return `${minute} ${hour} ${day} ${month} ${weekday}`;
+      }
+
+      function applyPreset(expression) {
+        const [minute, hour, day, month, weekday] = expression.split(" ");
+        document.getElementById("cronMinute").value = minute;
+        document.getElementById("cronHour").value = hour;
+        document.getElementById("cronDay").value = day;
+        document.getElementById("cronMonth").value = month;
+        document.getElementById("cronWeekday").value = weekday;
+      }
+
+      async function addNotification() {
+        const title = document.getElementById("title").value;
+        const message = document.getElementById("message").value;
+        const cronExpression = getCronExpression();
+
+        if (!title || !message || !cronExpression) {
+          alert("Please fill in all fields");
+          return;
+        }
+
+        await ipcRenderer.invoke("add-notification", {
+          title,
+          message,
+          cronExpression,
+          enabled: true,
+        });
+
+        closeDialog();
+      }
+
+      function closeDialog() {
+        ipcRenderer.send("close-add-dialog");
+      }
+    </script>
+  </body>
+</html>
