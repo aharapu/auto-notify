@@ -2,14 +2,40 @@
   "name": "auto-notify",
   "version": "1.0.0",
   "description": "A simple notification app that reminds you to stretch every 5 minutes",
-  "main": "main.js",
+  "main": "dist/main.js",
   "scripts": {
-    "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "tsc && electron .",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "dist": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
   },
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "electron": "^28.1.0"
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "typescript": "^5.3.3",
+    "electron-builder": "^24.9.1",
+    "@types/node": "^20.11.19"
+  },
+  "build": {
+    "appId": "com.autonotify.app",
+    "productName": "Auto Notify",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis",
+      "signingHashAlgorithms": null,
+      "signAndEditExecutable": false
+    },
+    "mac": {
+      "target": "dmg",
+      "identity": null
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }
