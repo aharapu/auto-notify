@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Database Configuration</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        margin-top: 0;
+        color: #333;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #666;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      .error {
+        color: red;
+        margin-top: 10px;
+        display: none;
+      }
+      .help-text {
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Database Configuration</h2>
+      <div class="form-group">
+        <label for="databaseUrl">Database URL:</label>
+        <input
+          type="text"
+          id="databaseUrl"
+          placeholder="postgresql://user:password@localhost:5432/dbname"
+        />
+        <div class="help-text">
+          Format: postgresql://username:password@host:port/database
+        </div>
+      </div>
+      <button onclick="saveDatabaseUrl()">Save Configuration</button>
+      <div id="error" class="error"></div>
+    </div>
+
+    <script>
+      const { ipcRenderer } = require("electron");
+
+      // Load existing database URL
+      window.addEventListener("DOMContentLoaded", async () => {
+        const databaseUrl = await ipcRenderer.invoke("get-database-url");
+        if (databaseUrl) {
+          document.getElementById("databaseUrl").value = databaseUrl;
+        }
+      });
+
+      function validateDatabaseUrl(url) {
+        if (!url || url.trim() === "") {
+          return "Please enter a database URL";
+        }
+        if (!url.startsWith("postgresql://")) {
+          return "Database URL must start with postgresql://";
+        }
+        return null;
+      }
+
+      async function saveDatabaseUrl() {
+        const databaseUrl = document.getElementById("databaseUrl").value;
+        const errorElement = document.getElementById("error");
+
+        const validationError = validateDatabaseUrl(databaseUrl);
+        if (validationError) {
+          errorElement.textContent = validationError;
+          errorElement.style.display = "block";
+          return;
+        }
+
+        try {
+          console.log("saving database url", databaseUrl);
+          await ipcRenderer.invoke("save-database-url", databaseUrl);
+          window.close();
+        } catch (error) {
+          errorElement.textContent =
+            error.message || "Failed to save database configuration";
+          errorElement.style.display = "block";
+        }
+      }
+    </script>
+  </body>
+</html>

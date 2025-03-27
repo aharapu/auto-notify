@@ -4,41 +4,93 @@ import { NotificationService } from "./services/notificationService";
 import { WindowManager } from "./services/windowManager";
 import { NotificationConfig } from "./types";
 import { ConfigService } from "./services/configService";
+import { DatabaseConfigService } from "./services/databaseConfigService";
+import { DatabaseConfigWindow } from "./services/databaseConfigWindow";
 import dotenv from "dotenv";
 
 // Load environment variables
 dotenv.config();
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is not set");
-}
-
-// Database configuration
-const dbConfig = {
-  connectionString: process.env.DATABASE_URL,
-};
-
 // Initialize services
 let configService: ConfigService;
 let notificationService: NotificationService;
 let windowManager: WindowManager;
+let databaseConfigService: DatabaseConfigService;
+let databaseConfigWindow: DatabaseConfigWindow;
+
+async function initializeServices(databaseUrl: string) {
+  try {
+    // Initialize remaining services with database configuration
+    const dbConfig = {
+      connectionString: databaseUrl,
+    };
+
+    // Close existing services if they exist
+    if (configService) {
+      await configService.close();
+    }
+    if (notificationService) {
+      notificationService.stopAllNotifications();
+    }
+
+    // Initialize new services
+    configService = await ConfigService.getInstance(dbConfig);
+    notificationService = NotificationService.getInstance();
+
+    // Initialize notifications from saved config
+    const config = await configService.getConfig();
+    config.notifications.forEach((notification: NotificationConfig) => {
+      if (notification.is_enabled) {
+        notificationService.startNotification(notification);
+      }
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Failed to initialize database connection:", error);
+    return false;
+  }
+}
 
 // Initialize app
 app.whenReady().then(async () => {
   // Initialize services
-  configService = await ConfigService.getInstance(dbConfig);
-  notificationService = NotificationService.getInstance();
+  databaseConfigService = DatabaseConfigService.getInstance();
+  databaseConfigWindow = DatabaseConfigWindow.getInstance();
   windowManager = WindowManager.getInstance();
 
-  windowManager.createMainWindow();
+  // Check if database is configured
+  if (!databaseConfigService.hasDatabaseConfig()) {
+    databaseConfigWindow.createWindow();
+    return;
+  }
 
-  // Initialize notifications from saved config after app is ready
-  const config = await configService.getConfig();
-  config.notifications.forEach((notification: NotificationConfig) => {
-    if (notification.is_enabled) {
-      notificationService.startNotification(notification);
-    }
-  });
+  const databaseUrl = databaseConfigService.getDatabaseUrl();
+  if (!databaseUrl) {
+    databaseConfigWindow.createWindow();
+    return;
+  }
+
+  const success = await initializeServices(databaseUrl);
+  if (success) {
+    windowManager.createMainWindow();
+  } else {
+    databaseConfigWindow.createWindow();
+  }
+});
+
+// Handle database configuration window events
+ipcMain.handle("open-database-config", () => {
+  databaseConfigWindow.createWindow();
+});
+
+// Handle database configuration updates
+ipcMain.on("database-config-updated", async (_, newUrl: string) => {
+  console.log("3. database-config-updated event received with url  ", newUrl);
+  const success = await initializeServices(newUrl);
+  if (success) {
+    windowManager.refreshMainWindow();
+  }
 });
 
 // IPC handlers
@@ -80,8 +132,8 @@ ipcMain.handle("toggle-notification", async (_, id: string) => {
   windowManager.notifyNotificationToggled(id);
 });
 
-app.on("window-all-closed", async () => {
-  await configService.close();
+// Handle app quit
+app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
   }

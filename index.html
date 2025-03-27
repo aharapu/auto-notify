@@ -3,14 +3,39 @@
   <head>
     <title>Notification Manager</title>
     <link rel="stylesheet" href="src/styles/main.css" />
+    <style>
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .config-button {
+        background-color: #4caf50;
+        color: white;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-left: 10px;
+      }
+      .config-button:hover {
+        background-color: #45a049;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
       <div class="header">
         <h1>Notification Manager</h1>
-        <button class="button button-primary" onclick="showAddDialog()">
-          Add Notification
-        </button>
+        <div>
+          <button class="button button-primary" onclick="showAddDialog()">
+            Add Notification
+          </button>
+          <button class="config-button" onclick="openDatabaseConfig()">
+            Database Settings
+          </button>
+        </div>
       </div>
 
       <div id="notificationList" class="notification-list"></div>
@@ -21,6 +46,10 @@
 
       function showAddDialog() {
         ipcRenderer.invoke("show-add-dialog");
+      }
+
+      async function openDatabaseConfig() {
+        await ipcRenderer.invoke("open-database-config");
       }
 
       // Listen for notification-added event

@@ -1,6 +1,7 @@
 import { Notification } from "electron";
 import { NotificationConfig } from "../types";
 import { CronExpressionParser } from "cron-parser";
+import { app } from "electron";
 
 export class NotificationService {
   private static instance: NotificationService;
@@ -61,6 +62,13 @@ export class NotificationService {
     const interval = this.notificationIntervals.get(id);
     if (interval) {
       clearInterval(interval);
+      this.notificationIntervals.delete(id);
+    }
+  }
+
+  stopAllNotifications() {
+    for (const [id, timeout] of this.notificationIntervals.entries()) {
+      clearInterval(timeout);
       this.notificationIntervals.delete(id);
     }
   }

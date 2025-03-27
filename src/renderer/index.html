@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Auto Notify</title>
+    <style>
+      /* ... existing styles ... */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .config-button {
+        background-color: #4caf50;
+        color: white;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .config-button:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Auto Notify</h1>
+        <button class="config-button" onclick="openDatabaseConfig()">
+          Database Settings
+        </button>
+      </div>
+      <!-- ... rest of the existing content ... -->
+    </div>
+
+    <script>
+      const { ipcRenderer } = require("electron");
+
+      // ... existing script content ...
+
+      async function openDatabaseConfig() {
+        await ipcRenderer.invoke("open-database-config");
+      }
+    </script>
+  </body>
+</html>
