@@ -54,35 +54,35 @@
               <div class="cron-inputs">
                 <div class="cron-input-group">
                   <label>Minute (0-59)</label>
-                  <input type="text" class="cron-input" value="${minute}" 
+                  <input type="text" class="cron-input" data-field="minute" value="${minute}" 
                     onchange="updateNotification('${
                       notification.id
                     }', { cronExpression: getCronExpression() })">
                 </div>
                 <div class="cron-input-group">
                   <label>Hour (0-23)</label>
-                  <input type="text" class="cron-input" value="${hour}"
+                  <input type="text" class="cron-input" data-field="hour" value="${hour}"
                     onchange="updateNotification('${
                       notification.id
                     }', { cronExpression: getCronExpression() })">
                 </div>
                 <div class="cron-input-group">
                   <label>Day (1-31)</label>
-                  <input type="text" class="cron-input" value="${day}"
+                  <input type="text" class="cron-input" data-field="day" value="${day}"
                     onchange="updateNotification('${
                       notification.id
                     }', { cronExpression: getCronExpression() })">
                 </div>
                 <div class="cron-input-group">
                   <label>Month (1-12)</label>
-                  <input type="text" class="cron-input" value="${month}"
+                  <input type="text" class="cron-input" data-field="month" value="${month}"
                     onchange="updateNotification('${
                       notification.id
                     }', { cronExpression: getCronExpression() })">
                 </div>
                 <div class="cron-input-group">
                   <label>Weekday (0-6)</label>
-                  <input type="text" class="cron-input" value="${weekday}"
+                  <input type="text" class="cron-input" data-field="weekday" value="${weekday}"
                     onchange="updateNotification('${
                       notification.id
                     }', { cronExpression: getCronExpression() })">
@@ -98,11 +98,12 @@
       }
 
       function getCronExpression() {
-        const minute = document.getElementById("cronMinute").value;
-        const hour = document.getElementById("cronHour").value;
-        const day = document.getElementById("cronDay").value;
-        const month = document.getElementById("cronMonth").value;
-        const weekday = document.getElementById("cronWeekday").value;
+        const card = event.target.closest(".notification-card");
+        const minute = card.querySelector('[data-field="minute"]').value;
+        const hour = card.querySelector('[data-field="hour"]').value;
+        const day = card.querySelector('[data-field="day"]').value;
+        const month = card.querySelector('[data-field="month"]').value;
+        const weekday = card.querySelector('[data-field="weekday"]').value;
         return `${minute} ${hour} ${day} ${month} ${weekday}`;
       }
 
