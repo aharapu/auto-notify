@@ -1,15 +1,10 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-import * as path from "path";
 import { NotificationService } from "./services/notificationService";
 import { WindowManager } from "./services/windowManager";
 import { NotificationConfig } from "./types";
 import { ConfigService } from "./services/configService";
 import { DatabaseConfigService } from "./services/databaseConfigService";
 import { DatabaseConfigWindow } from "./services/databaseConfigWindow";
-import dotenv from "dotenv";
-
-// Load environment variables
-dotenv.config();
 
 // Initialize services
 let configService: ConfigService;

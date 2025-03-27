@@ -32,13 +32,25 @@
     "files": [
       "dist/**/*",
       "index.html",
-      "src/assets/**/*"
+      "src/assets/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/",
+        "to": "node_modules/",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "win": {
       "target": "nsis",
       "signingHashAlgorithms": null,
       "signAndEditExecutable": false,
-      "icon": "src/assets/icon.ico"
+      "icon": "src/assets/icon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "mac": {
       "target": "dmg",
@@ -48,6 +60,13 @@
     "linux": {
       "target": "AppImage",
       "icon": "src/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Auto Notify"
     }
   }
 }
