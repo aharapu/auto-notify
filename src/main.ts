@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Notification } from "electron";
 import * as path from "path";
 import { ConfigService } from "./config";
 import { NotificationConfig } from "./types";
+import { CronExpressionParser } from "cron-parser";
 
 let mainWindow: BrowserWindow | null = null;
 const notificationIntervals: Map<string, NodeJS.Timeout> = new Map();
@@ -21,21 +22,9 @@ function createWindow(): void {
   mainWindow.loadFile(path.join(__dirname, "../index.html"));
 }
 
-app.whenReady().then(createWindow);
-
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
-});
-
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-});
-
 function sendNotification(notification: NotificationConfig): void {
+  if (!app.isReady()) return;
+
   new Notification({
     title: notification.title,
     body: notification.message,
@@ -47,20 +36,35 @@ function startNotification(notification: NotificationConfig): void {
     clearInterval(notificationIntervals.get(notification.id));
   }
 
-  const totalMilliseconds =
-    notification.frequency.hours * 3600000 +
-    notification.frequency.minutes * 60000 +
-    notification.frequency.seconds * 1000;
+  try {
+    const interval = CronExpressionParser.parse(notification.cronExpression);
 
-  // Send notification immediately
-  sendNotification(notification);
+    // Send notification immediately if app is ready
+    if (app.isReady()) {
+      sendNotification(notification);
+    }
 
-  // Set up interval
-  const interval = setInterval(() => {
-    sendNotification(notification);
-  }, totalMilliseconds);
+    // Set up interval based on cron expression
+    const scheduleNext = () => {
+      const next = interval.next();
+      const now = new Date();
+      const delay = next.getTime() - now.getTime();
 
-  notificationIntervals.set(notification.id, interval);
+      const timeout = setTimeout(() => {
+        sendNotification(notification);
+        scheduleNext();
+      }, delay);
+
+      notificationIntervals.set(notification.id, timeout);
+    };
+
+    scheduleNext();
+  } catch (error) {
+    console.error(
+      `Invalid cron expression for notification ${notification.id}:`,
+      error
+    );
+  }
 }
 
 function stopNotification(id: string): void {
@@ -119,10 +123,27 @@ ipcMain.handle("toggle-notification", (_event, id: string) => {
   return notification;
 });
 
-// Initialize notifications from saved config
-const config = configService.getConfig();
-config.notifications.forEach((notification) => {
-  if (notification.enabled) {
-    startNotification(notification);
+// Initialize app
+app.whenReady().then(() => {
+  createWindow();
+
+  // Initialize notifications from saved config after app is ready
+  const config = configService.getConfig();
+  config.notifications.forEach((notification) => {
+    if (notification.enabled) {
+      startNotification(notification);
+    }
+  });
+});
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
+});
+
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
   }
 });

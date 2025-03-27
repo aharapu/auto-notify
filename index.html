@@ -45,18 +45,16 @@
         margin: 10px 0;
       }
       .notification-frequency {
-        display: flex;
-        gap: 10px;
         margin: 10px 0;
       }
-      .frequency-input {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-      }
-      .frequency-input input {
-        width: 60px;
+      .cron-input {
+        width: 200px;
         padding: 5px;
+      }
+      .cron-help {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
       }
       .button {
         padding: 8px 16px;
@@ -81,8 +79,8 @@
       .toggle-switch {
         position: relative;
         display: inline-block;
-        width: 50px;
-        height: 24px;
+        width: 60px;
+        height: 34px;
       }
       .toggle-switch input {
         opacity: 0;
@@ -98,13 +96,13 @@
         bottom: 0;
         background-color: #ccc;
         transition: 0.4s;
-        border-radius: 24px;
+        border-radius: 34px;
       }
       .slider:before {
         position: absolute;
         content: "";
-        height: 16px;
-        width: 16px;
+        height: 26px;
+        width: 26px;
         left: 4px;
         bottom: 4px;
         background-color: white;
@@ -112,7 +110,7 @@
         border-radius: 50%;
       }
       input:checked + .slider {
-        background-color: #4caf50;
+        background-color: #2196f3;
       }
       input:checked + .slider:before {
         transform: translateX(26px);
@@ -137,6 +135,48 @@
         border: 1px solid #ddd;
         border-radius: 4px;
       }
+      .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        height: 100px;
+      }
+      .cron-inputs {
+        display: flex;
+        gap: 10px;
+        margin: 10px 0;
+      }
+      .cron-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .cron-input-group label {
+        font-size: 12px;
+        color: #666;
+      }
+      .cron-input-group input {
+        width: 60px;
+        padding: 5px;
+      }
+      .cron-presets {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+      .cron-preset {
+        font-size: 12px;
+        padding: 4px 8px;
+        background: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .cron-preset:hover {
+        background: #e0e0e0;
+      }
     </style>
   </head>
   <body>
@@ -160,22 +200,49 @@
         </div>
         <div class="form-group">
           <label for="message">Message:</label>
-          <input type="text" id="message" required />
+          <textarea id="message" required></textarea>
         </div>
         <div class="form-group">
-          <label>Frequency:</label>
-          <div class="notification-frequency">
-            <div class="frequency-input">
-              <input type="number" id="hours" min="0" value="0" />
-              <span>hours</span>
+          <label>Schedule:</label>
+          <div class="cron-inputs">
+            <div class="cron-input-group">
+              <label>Minute (0-59)</label>
+              <input
+                type="text"
+                id="cronMinute"
+                value="*/5"
+                placeholder="*/5"
+              />
             </div>
-            <div class="frequency-input">
-              <input type="number" id="minutes" min="0" value="5" />
-              <span>minutes</span>
+            <div class="cron-input-group">
+              <label>Hour (0-23)</label>
+              <input type="text" id="cronHour" value="*" placeholder="*" />
             </div>
-            <div class="frequency-input">
-              <input type="number" id="seconds" min="0" value="0" />
-              <span>seconds</span>
+            <div class="cron-input-group">
+              <label>Day (1-31)</label>
+              <input type="text" id="cronDay" value="*" placeholder="*" />
+            </div>
+            <div class="cron-input-group">
+              <label>Month (1-12)</label>
+              <input type="text" id="cronMonth" value="*" placeholder="*" />
+            </div>
+            <div class="cron-input-group">
+              <label>Weekday (0-6)</label>
+              <input type="text" id="cronWeekday" value="*" placeholder="*" />
+            </div>
+          </div>
+          <div class="cron-presets">
+            <div class="cron-preset" onclick="applyPreset('*/5 * * * *')">
+              Every 5 minutes
+            </div>
+            <div class="cron-preset" onclick="applyPreset('0 * * * *')">
+              Every hour
+            </div>
+            <div class="cron-preset" onclick="applyPreset('0 9 * * 1-5')">
+              Every weekday at 9 AM
+            </div>
+            <div class="cron-preset" onclick="applyPreset('0 0 * * *')">
+              Every day at midnight
             </div>
           </div>
         </div>
@@ -187,71 +254,108 @@
         </button>
       </div>
 
-      <div id="notificationList" class="notification-list">
-        <!-- Notifications will be added here dynamically -->
-      </div>
+      <div id="notificationList" class="notification-list"></div>
     </div>
 
     <script>
       const { ipcRenderer } = require("electron");
 
-      // Load notifications on startup
-      loadNotifications();
+      function getCronExpression() {
+        const minute = document.getElementById("cronMinute").value;
+        const hour = document.getElementById("cronHour").value;
+        const day = document.getElementById("cronDay").value;
+        const month = document.getElementById("cronMonth").value;
+        const weekday = document.getElementById("cronWeekday").value;
+        return `${minute} ${hour} ${day} ${month} ${weekday}`;
+      }
+
+      function applyPreset(expression) {
+        const [minute, hour, day, month, weekday] = expression.split(" ");
+        document.getElementById("cronMinute").value = minute;
+        document.getElementById("cronHour").value = hour;
+        document.getElementById("cronDay").value = day;
+        document.getElementById("cronMonth").value = month;
+        document.getElementById("cronWeekday").value = weekday;
+      }
+
+      function parseCronExpression(expression) {
+        const [minute, hour, day, month, weekday] = expression.split(" ");
+        return { minute, hour, day, month, weekday };
+      }
 
       async function loadNotifications() {
         const config = await ipcRenderer.invoke("get-config");
-        const notificationList = document.getElementById("notificationList");
-        notificationList.innerHTML = "";
+        const list = document.getElementById("notificationList");
+        list.innerHTML = "";
 
         config.notifications.forEach((notification) => {
-          addNotificationToUI(notification);
+          const { minute, hour, day, month, weekday } = parseCronExpression(
+            notification.cronExpression
+          );
+          const card = document.createElement("div");
+          card.className = "notification-card";
+          card.innerHTML = `
+            <div class="notification-header">
+              <h3 class="notification-title">${notification.title}</h3>
+              <label class="toggle-switch">
+                <input type="checkbox" ${
+                  notification.enabled ? "checked" : ""
+                } onchange="toggleNotification('${notification.id}')">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="notification-message">${notification.message}</div>
+            <div class="notification-frequency">
+              <div class="cron-inputs">
+                <div class="cron-input-group">
+                  <label>Minute (0-59)</label>
+                  <input type="text" class="cron-input" value="${minute}" 
+                    onchange="updateNotification('${
+                      notification.id
+                    }', { cronExpression: getCronExpression() })">
+                </div>
+                <div class="cron-input-group">
+                  <label>Hour (0-23)</label>
+                  <input type="text" class="cron-input" value="${hour}"
+                    onchange="updateNotification('${
+                      notification.id
+                    }', { cronExpression: getCronExpression() })">
+                </div>
+                <div class="cron-input-group">
+                  <label>Day (1-31)</label>
+                  <input type="text" class="cron-input" value="${day}"
+                    onchange="updateNotification('${
+                      notification.id
+                    }', { cronExpression: getCronExpression() })">
+                </div>
+                <div class="cron-input-group">
+                  <label>Month (1-12)</label>
+                  <input type="text" class="cron-input" value="${month}"
+                    onchange="updateNotification('${
+                      notification.id
+                    }', { cronExpression: getCronExpression() })">
+                </div>
+                <div class="cron-input-group">
+                  <label>Weekday (0-6)</label>
+                  <input type="text" class="cron-input" value="${weekday}"
+                    onchange="updateNotification('${
+                      notification.id
+                    }', { cronExpression: getCronExpression() })">
+                </div>
+              </div>
+              <div class="cron-presets">
+                <div class="cron-preset" onclick="applyPreset('*/5 * * * *')">Every 5 minutes</div>
+                <div class="cron-preset" onclick="applyPreset('0 * * * *')">Every hour</div>
+                <div class="cron-preset" onclick="applyPreset('0 9 * * 1-5')">Every weekday at 9 AM</div>
+                <div class="cron-preset" onclick="applyPreset('0 0 * * *')">Every day at midnight</div>
+              </div>
+            </div>
+            <button class="button button-danger" onclick="deleteNotification('${
+              notification.id
+            }')">Delete</button>
+          `;
+          list.appendChild(card);
         });
-      }
-
-      function addNotificationToUI(notification) {
-        const notificationList = document.getElementById("notificationList");
-        const card = document.createElement("div");
-        card.className = "notification-card";
-        card.innerHTML = `
-          <div class="notification-header">
-            <h3 class="notification-title">${notification.title}</h3>
-            <label class="toggle-switch">
-              <input type="checkbox" ${notification.enabled ? "checked" : ""} 
-                     onchange="toggleNotification('${notification.id}')">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <p class="notification-message">${notification.message}</p>
-          <div class="notification-frequency">
-            <div class="frequency-input">
-              <input type="number" value="${notification.frequency.hours}" 
-                     onchange="updateFrequency('${
-                       notification.id
-                     }', 'hours', this.value)">
-              <span>hours</span>
-            </div>
-            <div class="frequency-input">
-              <input type="number" value="${notification.frequency.minutes}" 
-                     onchange="updateFrequency('${
-                       notification.id
-                     }', 'minutes', this.value)">
-              <span>minutes</span>
-            </div>
-            <div class="frequency-input">
-              <input type="number" value="${notification.frequency.seconds}" 
-                     onchange="updateFrequency('${
-                       notification.id
-                     }', 'seconds', this.value)">
-              <span>seconds</span>
-            </div>
-          </div>
-          <button class="button button-danger" onclick="deleteNotification('${
-            notification.id
-          }')">
-            Delete
-          </button>
-        `;
-        notificationList.appendChild(card);
       }
 
       function showAddForm() {
@@ -265,55 +369,50 @@
       async function addNotification() {
         const title = document.getElementById("title").value;
         const message = document.getElementById("message").value;
-        const hours = parseInt(document.getElementById("hours").value) || 0;
-        const minutes = parseInt(document.getElementById("minutes").value) || 0;
-        const seconds = parseInt(document.getElementById("seconds").value) || 0;
+        const cronExpression = getCronExpression();
 
-        if (!title || !message) {
-          alert("Please fill in all required fields");
+        if (!title || !message || !cronExpression) {
+          alert("Please fill in all fields");
           return;
         }
 
-        const notification = {
+        await ipcRenderer.invoke("add-notification", {
           title,
           message,
-          frequency: { hours, minutes, seconds },
+          cronExpression,
           enabled: true,
-        };
+        });
 
-        const newNotification = await ipcRenderer.invoke(
-          "add-notification",
-          notification
-        );
-        addNotificationToUI(newNotification);
+        document.getElementById("title").value = "";
+        document.getElementById("message").value = "";
+        document.getElementById("cronMinute").value = "*/5";
+        document.getElementById("cronHour").value = "*";
+        document.getElementById("cronDay").value = "*";
+        document.getElementById("cronMonth").value = "*";
+        document.getElementById("cronWeekday").value = "*";
         hideAddForm();
+        loadNotifications();
+      }
+
+      async function updateNotification(id, updates) {
+        await ipcRenderer.invoke("update-notification", id, updates);
+        loadNotifications();
+      }
+
+      async function deleteNotification(id) {
+        if (confirm("Are you sure you want to delete this notification?")) {
+          await ipcRenderer.invoke("delete-notification", id);
+          loadNotifications();
+        }
       }
 
       async function toggleNotification(id) {
         await ipcRenderer.invoke("toggle-notification", id);
+        loadNotifications();
       }
 
-      async function updateFrequency(id, unit, value) {
-        const notification = await ipcRenderer.invoke("get-config");
-        const targetNotification = notification.notifications.find(
-          (n) => n.id === id
-        );
-        if (targetNotification) {
-          targetNotification.frequency[unit] = parseInt(value) || 0;
-          await ipcRenderer.invoke(
-            "update-notification",
-            id,
-            targetNotification
-          );
-        }
-      }
-
-      async function deleteNotification(id) {
-        const success = await ipcRenderer.invoke("delete-notification", id);
-        if (success) {
-          loadNotifications();
-        }
-      }
+      // Load notifications when the page loads
+      loadNotifications();
     </script>
   </body>
 </html>

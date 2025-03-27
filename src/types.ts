@@ -2,11 +2,7 @@ export interface NotificationConfig {
   id: string;
   title: string;
   message: string;
-  frequency: {
-    hours: number;
-    minutes: number;
-    seconds: number;
-  };
+  cronExpression: string;
   enabled: boolean;
 }
 

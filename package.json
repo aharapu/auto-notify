@@ -12,12 +12,14 @@
   },
   "author": "",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "cron-parser": "^5.0.6"
+  },
   "devDependencies": {
+    "@types/node": "^20.11.19",
     "electron": "^35.0.0",
-    "typescript": "^5.3.3",
     "electron-builder": "^24.9.1",
-    "@types/node": "^20.11.19"
+    "typescript": "^5.3.3"
   },
   "build": {
     "appId": "com.autonotify.app",
